@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spinning-eye"
+version = "0.1.0"
+description = "just spinning eye in your terminal"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+eye = "eye:main"
+
+[project.urls]
+Repository = "https://github.com/iwannasome/eye"
+
+[tool.setuptools]
+py-modules = ["eye"]
