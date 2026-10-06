@@ -59,7 +59,9 @@ def geometry(width: int, height: int) -> tuple:
     return tuple(points)
 
 
-def render(width: int, height: int, angle: float, *, color: str = "purple", mono: bool = False) -> str:
+def render(
+    width: int, height: int, angle: float, *, color: str = "purple", mono: bool = False
+) -> str:
     """Render just the eye; no clock, terminal I/O, or random state."""
     chars = [[" "] * width for _ in range(height)]
     shades = [[0] * width for _ in range(height)]
@@ -80,8 +82,10 @@ def render(width: int, height: int, angle: float, *, color: str = "purple", mono
             brightness *= 0.61
         if w > 0 and rho < 0.65:
             family = 1
-            fiber = (math.sin(phi * 81 + rho * 26 + math.sin(phi * 13))
-                     + 0.5 * math.sin(phi * 143 - rho * 31)) / 1.5
+            fiber = (
+                math.sin(phi * 81 + rho * 26 + math.sin(phi * 13))
+                + 0.5 * math.sin(phi * 143 - rho * 31)
+            ) / 1.5
             rings = math.sin(rho * 73 + 0.9 * math.sin(phi * 9))
             brightness = (0.44 + 0.22 * fiber + 0.07 * rings) * (0.65 + 0.45 * light)
             if rho > 0.59:
@@ -96,12 +100,12 @@ def render(width: int, height: int, angle: float, *, color: str = "purple", mono
         if specular > 0.10 and family != 3:
             brightness = min(0.78, brightness + specular * 0.10)
         brightness = min(1.0, max(0.0, brightness))
-        density = brightness ** 0.75 if family in (1, 2) else brightness
+        density = brightness**0.75 if family in (1, 2) else brightness
         char = RAMP[max(1, round(density * (len(RAMP) - 1)))]
         if family == 3:
             char = " " if brightness < 0.12 else "."
         chars[row][col] = char
-        tone = brightness ** 0.65 if family != 3 else brightness
+        tone = brightness**0.65 if family != 3 else brightness
         shades[row][col] = family * 16 + int(tone * 15)
     if mono:
         return "\n".join("".join(row) for row in chars)
@@ -126,7 +130,10 @@ def console_mode():
         from ctypes import wintypes
 
         kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel.GetConsoleMode.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel.GetConsoleMode.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
         kernel.GetConsoleMode.restype = wintypes.BOOL
         kernel.SetConsoleMode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
         kernel.SetConsoleMode.restype = wintypes.BOOL
@@ -140,7 +147,11 @@ def console_mode():
                 # Output: processed output + virtual terminal sequences.
                 # Input: Ctrl+C enabled; no echo, line buffering, Quick Edit,
                 # or VT input (msvcrt reads native console key events).
-                enabled = (mode.value | 0x0005) if is_output else ((mode.value | 0x0081) & ~0x0246)
+                enabled = (
+                    (mode.value | 0x0005)
+                    if is_output
+                    else ((mode.value | 0x0081) & ~0x0246)
+                )
                 if not kernel.SetConsoleMode(handle, enabled):
                     raise ctypes.WinError(ctypes.get_last_error())
                 saved.append((handle, mode.value))
@@ -219,14 +230,27 @@ def finite(value: str) -> float:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--color", choices=COLORS, default="purple", help="eye color (purple)")
+    parser.add_argument(
+        "--color", choices=COLORS, default="purple", help="eye color (purple)"
+    )
     parser.add_argument("--colors", action="store_true", help="list the ten colors")
     parser.add_argument("--no-hud", action="store_true", help="show only the eye")
-    parser.add_argument("--speed", type=finite, default=0.65, help="radians per second, 0 < speed <= 10 (0.65)")
-    parser.add_argument("--fps", type=finite, default=24, help="frames per second, 1 to 120 (24)")
+    parser.add_argument(
+        "--speed",
+        type=finite,
+        default=0.65,
+        help="radians per second, 0 < speed <= 10 (0.65)",
+    )
+    parser.add_argument(
+        "--fps", type=finite, default=24, help="frames per second, 1 to 120 (24)"
+    )
     parser.add_argument("--mono", action="store_true", help="disable colors")
-    parser.add_argument("--snapshot", action="store_true", help="print one plain-text frame")
-    parser.add_argument("--angle", type=finite, default=0, help="initial angle in degrees (0)")
+    parser.add_argument(
+        "--snapshot", action="store_true", help="print one plain-text frame"
+    )
+    parser.add_argument(
+        "--angle", type=finite, default=0, help="initial angle in degrees (0)"
+    )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)
     if not 0 < args.speed <= 10:
@@ -240,7 +264,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.snapshot:
         print(render(80, 32, angle, mono=True))
         return 0
-    if not sys.stdout.isatty() or not sys.stdin.isatty() or os.environ.get("TERM") == "dumb":
+    if (
+        not sys.stdout.isatty()
+        or not sys.stdin.isatty()
+        or os.environ.get("TERM") == "dumb"
+    ):
         parser.error("animation needs an interactive terminal; use --snapshot for text")
     mono = args.mono or "NO_COLOR" in os.environ
     hud, paused, color = not args.no_hud, False, args.color
@@ -262,20 +290,30 @@ def main(argv: list[str] | None = None) -> int:
                     left = max(0, (size.columns - 1 - width) // 2)
                     top = max(0, (size.lines - (2 if hud else 1) - height) // 2)
                     frame = render(width, height, angle, color=color, mono=mono)
-                    clear = previous_state is None or (size, hud) != (previous_state[1], previous_state[3])
+                    clear = previous_state is None or (size, hud) != (
+                        previous_state[1],
+                        previous_state[3],
+                    )
                     base = "" if mono else BACKGROUND
                     output = (base + "\x1b[2J") if clear else ""
-                    output += "".join(f"\x1b[{top + row + 1};{left + 1}H{line}" for row, line in enumerate(frame.split("\n")))
+                    output += "".join(
+                        f"\x1b[{top + row + 1};{left + 1}H{line}"
+                        for row, line in enumerate(frame.split("\n"))
+                    )
                     if hud:
                         label = "paused" if paused else color
-                        status = f"eye / {label} / space pause / c color / h hide / q quit"
+                        status = (
+                            f"eye / {label} / space pause / c color / h hide / q quit"
+                        )
                         style = "" if mono else BACKGROUND + palette(color)[9]
-                        output += f"\x1b[{max(1, size.lines)};1H{RESET}{style}\x1b[K{status[:max(0, size.columns - 1)]}"
+                        output += f"\x1b[{max(1, size.lines)};1H{RESET}{style}\x1b[K{status[: max(0, size.columns - 1)]}"
                     sys.stdout.write(output)
                     sys.stdout.flush()
                     previous_state = state
                 interval = 0.1 if paused else 1 / args.fps
-                keys = read_keys(max(0.0, interval - (time.monotonic() - started))).lower()
+                keys = read_keys(
+                    max(0.0, interval - (time.monotonic() - started))
+                ).lower()
                 if any(key in keys for key in ("q", "\x1b", "\x03")):
                     break
                 if keys.count(" ") % 2:
@@ -283,7 +321,9 @@ def main(argv: list[str] | None = None) -> int:
                 if keys.count("h") % 2:
                     hud = not hud
                 if "c" in keys:
-                    color = color_names[(color_names.index(color) + keys.count("c")) % len(color_names)]
+                    color = color_names[
+                        (color_names.index(color) + keys.count("c")) % len(color_names)
+                    ]
     except KeyboardInterrupt:
         pass
     except OSError as exc:
