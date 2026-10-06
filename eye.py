@@ -13,7 +13,7 @@ import time
 from contextlib import contextmanager
 from functools import lru_cache
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 COLORS = {
     "purple": (182, 147, 220),
     "blue": (115, 155, 225),
@@ -27,7 +27,6 @@ COLORS = {
     "white": (195, 195, 195),
 }
 RAMP = " .,:;=+*#%@"
-BACKGROUND = "\x1b[40m"
 RESET = "\x1b[0m"
 
 
@@ -111,7 +110,7 @@ def render(
         return "\n".join("".join(row) for row in chars)
     codes, rows = palette(color), []
     for row, tones in zip(chars, shades):
-        line, previous = [BACKGROUND], None
+        line, previous = [RESET], None
         for char, tone in zip(row, tones):
             if char != " " and tone != previous:
                 line.append(codes[tone])
@@ -221,7 +220,7 @@ def terminal():
     with console_mode():
         try:
             signal.signal(signal.SIGTERM, terminate)
-            sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[2J")
+            sys.stdout.write(f"\x1b[?1049h\x1b[?25l{RESET}\x1b[2J")
             sys.stdout.flush()
             yield
         finally:
@@ -303,8 +302,7 @@ def main(argv: list[str] | None = None) -> int:
                         previous_state[1],
                         previous_state[3],
                     )
-                    base = "" if mono else BACKGROUND
-                    output = (base + "\x1b[2J") if clear else ""
+                    output = (RESET + "\x1b[2J") if clear else ""
                     output += "".join(
                         f"\x1b[{top + row + 1};{left + 1}H{line}"
                         for row, line in enumerate(frame.split("\n"))
@@ -314,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
                         status = (
                             f"eye / {label} / space pause / c color / h hide / q quit"
                         )
-                        style = "" if mono else BACKGROUND + palette(color)[9]
+                        style = "" if mono else palette(color)[9]
                         output += f"\x1b[{max(1, size.lines)};1H{RESET}{style}\x1b[K{status[: max(0, size.columns - 1)]}"
                     sys.stdout.write(output)
                     sys.stdout.flush()
