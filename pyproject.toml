@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spinning-eye"
-version = "0.1.0"
+dynamic = ["version"]
 description = "just spinning eye in your terminal"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,3 +17,6 @@ Repository = "https://github.com/iwannasome/eye"
 
 [tool.setuptools]
 py-modules = ["eye"]
+
+[tool.setuptools.dynamic]
+version = {attr = "eye.__version__"}
