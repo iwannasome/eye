@@ -132,6 +132,16 @@ class InteractiveTests(unittest.TestCase):
                     os.write(master, b"\x1b[H")  # Home is not H or Escape.
                     self.assertEqual(drain(master, 0.15), b"")
                     self.assertIsNone(proc.poll())
+                    for prefix, suffix in (
+                        (b"\x1b[", b"H"),
+                        (b"\x1b", b"[H"),
+                        (b"\x1bO", b"H"),
+                    ):
+                        os.write(master, prefix)
+                        time.sleep(0.03)
+                        os.write(master, suffix)
+                        self.assertEqual(drain(master, 0.18), b"")
+                        self.assertIsNone(proc.poll())
                     os.write(master, b"h")
                     self.assertIn(b"eye /", drain(master, 0.15))
                     fcntl.ioctl(
@@ -149,7 +159,13 @@ class InteractiveTests(unittest.TestCase):
                     output = drain(master, 0.2)
                     self.assertEqual(proc.wait(timeout=3), 0)
                     self.assertIn(b"\x1b[?25h\x1b[?1049l", output)
-                    self.assertEqual(termios.tcgetattr(slave), original)
+                    restored = termios.tcgetattr(slave)
+                    if sys.platform == "darwin":
+                        # XNU sets this transient bit when restoring ICANON:
+                        # apple-oss-distributions/xnu, bsd/kern/tty.c.
+                        restored[3] &= ~termios.PENDIN
+                        original[3] &= ~termios.PENDIN
+                    self.assertEqual(restored, original)
                 finally:
                     if proc.poll() is None:
                         proc.kill()

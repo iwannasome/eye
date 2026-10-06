@@ -194,10 +194,19 @@ def read_keys(timeout: float) -> str:
     data = os.read(sys.stdin.fileno(), 64)
     if not data:
         return "q"
-    if data == b"\x1b" and select.select([sys.stdin], [], [], 0.01)[0]:
-        data += os.read(sys.stdin.fileno(), 64)
-    # Arrow/function keys must not be mistaken for Q, H, or Escape.
     text = data.decode("utf-8", errors="ignore")
+    # A terminal/SSH stream may split one key across multiple reads.
+    deadline = time.monotonic() + 0.15
+    while re.search(r"\x1b(?:\[[0-?]*[ -/]*|O)?$", text):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([sys.stdin], [], [], remaining)[0]:
+            break
+        chunk = os.read(sys.stdin.fileno(), 64)
+        if not chunk:
+            return "q"
+        text += chunk.decode("utf-8", errors="ignore")
+    # Drop incomplete CSI/SS3 keys; a lone Escape is still a quit key.
+    text = re.sub(r"\x1b(?:\[[0-?]*[ -/]*|O)$", "", text)
     return re.sub(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|O.)", "", text)
 
 
